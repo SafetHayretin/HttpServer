@@ -21,7 +21,7 @@ public class ServerListenerThread extends Thread {
     @Override
     public void run() {
         try {
-            ExecutorService pool = Executors.newFixedThreadPool(20);
+            ExecutorService pool = Executors.newFixedThreadPool(5);
 
             while (serverSocket.isBound() && !serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
@@ -40,6 +40,5 @@ public class ServerListenerThread extends Thread {
                 }
             }
         }
-
     }
 }

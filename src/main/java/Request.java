@@ -53,6 +53,7 @@ public class Request {
     private String getFileName(String line) {
         String[] strings = line.split(" ");
         String requestedFile = strings[1];
+        requestedFile = requestedFile.replaceAll("20%", " ");
 
         if (requestedFile.length() == 1)
             return "index.html";

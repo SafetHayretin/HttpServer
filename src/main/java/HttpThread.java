@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Scanner;
 
 public class HttpThread extends Thread {
@@ -28,6 +29,7 @@ public class HttpThread extends Thread {
             Response response = new Response(fileName, webRoot, encoding);
             String responseStr = response.createResponse();
             outputStream.write(responseStr.getBytes());
+            sendFile(outputStream, response);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
@@ -42,6 +44,19 @@ public class HttpThread extends Thread {
                     socket.close();
             } catch (IOException ignored) {
             }
+        }
+    }
+    private void sendFile(OutputStream outputStream, Response response) {
+        try (InputStream inputStream = new FileInputStream(response.file);
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            byte[] buf = new byte[1024];
+            for (int n; -1 != (n = inputStream.read(buf)); ) {
+                out.write(buf, 0, n);
+            }
+            byte[] responseBytes = out.toByteArray();
+            outputStream.write(responseBytes);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }

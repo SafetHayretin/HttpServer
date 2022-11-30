@@ -9,7 +9,7 @@ public class Response {
 
     String contentType;
 
-    String file;
+    File file;
 
     String path;
 
@@ -21,7 +21,7 @@ public class Response {
     public Response(String path, String webRoot, String contentEncoding) {
         this.path = path;
         this.webRoot = webRoot;
-        this.file = getHtml();
+        this.file = getFile();
         this.contentEncoding = contentEncoding;
         setContentType();
     }
@@ -29,35 +29,25 @@ public class Response {
     public String createResponse() {
         StringBuilder sb = new StringBuilder();
         sb.append("HTTP/1.1 200 OK" + CRLF);
-        sb.append("Content-Length: " + file.getBytes().length + CRLF);
-        sb.append("Date: " + new Date() + CRLF);
-        sb.append("Last-Modified: " + lastModified + CRLF);
+        sb.append("content-length: " + file.length() + CRLF);
+        sb.append("date: " + new Date() + CRLF);
+        sb.append("last-modified: " + lastModified + CRLF);
 //        if (contentEncoding != null) {
-//            sb.append("Content-Encoding: " + contentEncoding + CRLF);
+//            sb.append("content-encoding: " + contentEncoding + CRLF);
 //        }
         if (contentType != null) {
-            sb.append("Content-Type: " + contentType + CRLF);
+            sb.append("content-type: " + contentType + CRLF + CRLF);
         }
-        sb.append(CRLF + file + CRLF + CRLF);
 
         return sb.toString();
     }
 
-    private String getHtml() {
+    private File getFile() {
         File file = new File(webRoot + path);
+        System.out.println(file.getAbsolutePath());
         lastModified = setLastModified(file);
-        StringBuilder sb = new StringBuilder();
-        try (InputStream inputStream = new FileInputStream(file);
-             BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
 
-        return sb.toString();
+        return file;
     }
 
     private String setLastModified(File file) {
