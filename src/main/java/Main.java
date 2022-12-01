@@ -1,14 +1,21 @@
+import Exceptions.IncorrectCommand;
 import org.apache.commons.cli.*;
 
-import java.io.*;
-
 public class Main {
+    public static CommandLine cmd;
 
     public static void main(String[] args) {
-        CommandLine cmd = getCmd(args);
+        if (!args[0].equals("http-server")) {
+            throw new IncorrectCommand("http-server [path] [options]");
+        }
 
+        cmd = getCmd(args);
+        if (cmd.hasOption("h")){
+            System.out.println(cmd.getArgList());
+            return;
+        }
         int port = 8080;
-        String webRoot = "C:\\Users\\Safet\\Desktop\\MyFirstWebPage\\";
+        String webRoot = args[1];
         if (cmd.hasOption("p")) {
             String strPort = cmd.getOptionValue("p");
             port = Integer.parseInt(strPort);
@@ -19,58 +26,33 @@ public class Main {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-    }
-
-    public static boolean checkExists(String directory) {
-        File dir = new File(directory);
-        File[] dir_contents = dir.listFiles();
-        String temp = "index.html";
-        boolean check = new File(directory, temp).exists();
-        System.out.println("Check" + check);
-
-        assert dir_contents != null;
-        for (File dirContent : dir_contents) {
-            if (dirContent.getName().equals(temp))
-                return true;
-        }
-
-        return false;
-    }
-
-    public static String getHtml(InputStream inputStream) {
-        StringBuilder sb = new StringBuilder();
-
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(inputStream))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return sb.toString();
     }
 
     public static CommandLine getCmd(String[] args) {
         Options options = new Options();
 
-        Option port = new Option("p", true, "Port to use. Use -p 0 to look for an open port, starting at 8080. It will also read from process.env.PORT.");
+        Option port = new Option("p", "port", true, "Port to use. Use -p 0 to look for an open port, starting at 8080. It will also read from process.env.PORT.");
         options.addOption(port);
 
-        Option threads = new Option("t", true, "Number of threads");
+        Option threads = new Option("t", "threads", true, "Number of threads");
         options.addOption(threads);
 
-        Option directory = new Option("t", "Show directory listings");
+        Option directory = new Option("d", "Show directory listings");
         options.addOption(directory);
 
-        Option help = new Option("h", "Show commands");
+        Option compressFiles = new Option("c", "compress", false, "Compress text files");
+        options.addOption(compressFiles);
+
+        Option compress = new Option("g", "gzip", false, "Return compressedFiles");
+        options.addOption(compress);
+
+        Option help = new Option("h", "help", false, "Show commands");
         options.addOption(help);
 
 
         CommandLineParser parser = new DefaultParser();
         HelpFormatter formatter = new HelpFormatter();
+
         CommandLine cmd = null;
         try {
             cmd = parser.parse(options, args);
@@ -79,6 +61,7 @@ public class Main {
             formatter.printHelp("utility-name", options);
             System.exit(1);
         }
+
         return cmd;
     }
 }

@@ -1,4 +1,5 @@
-import java.io.IOException;
+import org.apache.commons.cli.CommandLine;
+
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -6,22 +7,24 @@ import java.util.concurrent.Executors;
 
 public class ServerListenerThread extends Thread {
 
-    private int port;
+    private final CommandLine cmd = Main.cmd;
+    private final int port;
 
-    private String webRoot;
+    private final String webRoot;
 
-    ServerSocket serverSocket;
-
-    public ServerListenerThread(int port, String webRoot) throws IOException {
+    public ServerListenerThread(int port, String webRoot) {
         this.port = port;
         this.webRoot = webRoot;
-        this.serverSocket = new ServerSocket(this.port);
     }
 
     @Override
     public void run() {
-        try {
-            ExecutorService pool = Executors.newFixedThreadPool(5);
+        int threads = 1;
+        if (cmd.hasOption("t")) {
+            threads = Integer.parseInt(cmd.getOptionValue("t"));
+        }
+        try (ServerSocket serverSocket = new ServerSocket(port))  {
+            ExecutorService pool = Executors.newFixedThreadPool(threads);
 
             while (serverSocket.isBound() && !serverSocket.isClosed()) {
                 Socket socket = serverSocket.accept();
@@ -31,14 +34,6 @@ public class ServerListenerThread extends Thread {
             }
         } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            if (serverSocket != null) {
-                try {
-                    serverSocket.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
         }
     }
 }

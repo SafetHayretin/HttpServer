@@ -1,10 +1,14 @@
+import org.apache.commons.cli.CommandLine;
+
 import java.io.*;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Scanner;
 
 public class HttpThread extends Thread {
+
+    private final CommandLine cmd = Main.cmd;
+
     private final Socket socket;
 
     private final String webRoot;
@@ -16,47 +20,57 @@ public class HttpThread extends Thread {
 
     @Override
     public void run() {
-        InputStream inputStream = null;
-        OutputStream outputStream = null;
-        try {
-            inputStream = socket.getInputStream();
+        try (InputStream inputStream = socket.getInputStream();
+             OutputStream outputStream = socket.getOutputStream()) {
+            if (!isIndexHtmlExist()) {
+                if (cmd.hasOption("d"))
+                    listFilesInDirectory(outputStream);
+                else{
+                    System.out.println("Missing index.html file.");
+                }
+                return;
+            }
+
             Scanner in = new Scanner(inputStream, StandardCharsets.UTF_8);
             Request request = new Request(in);
 
-            outputStream = socket.getOutputStream();
             String fileName = request.fileName;
             String encoding = request.encoding;
             Response response = new Response(fileName, webRoot, encoding);
-            String responseStr = response.createResponse();
+            String responseStr = response.getHeader();
             outputStream.write(responseStr.getBytes());
-            sendFile(outputStream, response);
+
+            byte[] responseByte = response.getResponse();
+            outputStream.write(responseByte);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
             try {
-                if (inputStream != null)
-                    inputStream.close();
-
-                if (outputStream != null)
-                    outputStream.close();
-
                 if (socket != null)
                     socket.close();
             } catch (IOException ignored) {
             }
         }
     }
-    private void sendFile(OutputStream outputStream, Response response) {
-        try (InputStream inputStream = new FileInputStream(response.file);
-             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            byte[] buf = new byte[1024];
-            for (int n; -1 != (n = inputStream.read(buf)); ) {
-                out.write(buf, 0, n);
-            }
-            byte[] responseBytes = out.toByteArray();
-            outputStream.write(responseBytes);
-        } catch (Exception e) {
-            e.printStackTrace();
+
+    private void listFilesInDirectory(OutputStream outputStream) throws IOException {
+        File[] files = new File(webRoot).listFiles();
+        StringBuilder body = new StringBuilder();
+        assert files != null;
+        for (File f : files) {
+            body.append(f.toPath()).append("\n");
         }
+        String filesInDir = body.toString();
+        String sb = "HTTP/1.1 200 OK" + "\n\r" +
+                "content-length: " + filesInDir.length() + "\n\r" + "\n\r" +
+                filesInDir;
+
+        System.out.println(filesInDir);
+        outputStream.write(sb.getBytes());
+    }
+
+    private boolean isIndexHtmlExist() {
+        File file = new File(webRoot + "index.html");
+        return file.exists();
     }
 }
