@@ -5,8 +5,7 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 
-public class HttpThread extends Thread {
-
+public class HttpThread implements Runnable {
     private final CommandLine cmd = Main.cmd;
 
     private final Socket socket;
@@ -25,7 +24,7 @@ public class HttpThread extends Thread {
             if (!isIndexHtmlExist()) {
                 if (cmd.hasOption("d"))
                     listFilesInDirectory(outputStream);
-                else{
+                else {
                     System.out.println("Missing index.html file.");
                 }
                 return;
@@ -39,9 +38,16 @@ public class HttpThread extends Thread {
             Response response = new Response(fileName, webRoot, encoding);
             String responseStr = response.getHeader();
             outputStream.write(responseStr.getBytes());
+            outputStream.flush();
+            File file = response.file;
+            FileInputStream fileInputStream = new FileInputStream(file);
+            byte[] buf = new byte[1024];
+            for (int n; -1 != (n = fileInputStream.read(buf)); ) {
+                outputStream.write(buf, 0, n);
+            }
 
-            byte[] responseByte = response.getResponse();
-            outputStream.write(responseByte);
+            outputStream.flush();
+            fileInputStream.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
